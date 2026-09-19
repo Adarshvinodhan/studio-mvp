@@ -3,11 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import path from "path";
-import fs from "fs/promises";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { getBusinessSettings } from "@/lib/counters";
-import { ensureUploadsDir } from "@/lib/uploads";
+import { deleteUpload, putUpload } from "@/lib/uploads";
 import { withFlash } from "@/lib/flash";
 
 function str(formData: FormData, key: string) {
@@ -29,10 +28,8 @@ export async function updateSettingsAction(formData: FormData) {
   if (file && file instanceof File && file.size > 0) {
     const bytes = Buffer.from(await file.arrayBuffer());
     const ext = path.extname(file.name) || ".png";
-    const dir = await ensureUploadsDir("logos");
     const fileName = `logo-${Date.now()}${ext}`;
-    await fs.writeFile(path.join(dir, fileName), bytes);
-    logo = `logos/${fileName}`;
+    logo = await putUpload(`logos/${fileName}`, bytes, file.type || undefined);
   }
 
   await prisma.businessSettings.update({
@@ -64,15 +61,18 @@ export async function uploadPortfolioImageAction(formData: FormData) {
   }
   const bytes = Buffer.from(await file.arrayBuffer());
   const ext = path.extname(file.name) || ".jpg";
-  const dir = await ensureUploadsDir("portfolio");
   const fileName = `img-${Date.now()}${ext}`;
-  await fs.writeFile(path.join(dir, fileName), bytes);
+  const filePath = await putUpload(
+    `portfolio/${fileName}`,
+    bytes,
+    file.type || undefined,
+  );
 
   const max = await prisma.portfolioImage.aggregate({ _max: { sortOrder: true } });
   await prisma.portfolioImage.create({
     data: {
       name: file.name,
-      filePath: `portfolio/${fileName}`,
+      filePath,
       sortOrder: (max._max.sortOrder ?? 0) + 1,
     },
   });
@@ -88,7 +88,7 @@ export async function deletePortfolioImageAction(formData: FormData) {
   if (image) {
     await prisma.portfolioImage.delete({ where: { id } });
     try {
-      await fs.unlink(path.join(process.cwd(), "uploads", image.filePath));
+      await deleteUpload(image.filePath);
     } catch {
       // ignore missing file
     }

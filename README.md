@@ -19,9 +19,10 @@ cp .env.example .env
 
 Required:
 
-- `DATABASE_URL` — Postgres connection string (e.g. Neon)
+- `DATABASE_URL` — Postgres connection string (e.g. Neon / Supabase)
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD`
 - `AUTH_SECRET` — long random string
+- `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` — required on Vercel (uploads/PDFs use Supabase Storage; local falls back to `uploads/` if unset)
 
 2. Install dependencies:
 

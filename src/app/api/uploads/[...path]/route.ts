@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
-import fs from "fs/promises";
 import { getSession } from "@/lib/auth";
-import { safeJoinUploads } from "@/lib/uploads";
+import { contentTypeForUpload, readUpload } from "@/lib/uploads";
 
 export async function GET(
   _request: NextRequest,
@@ -16,19 +14,12 @@ export async function GET(
   const { path: parts } = await context.params;
   const relative = parts.join("/");
   try {
-    const absolute = safeJoinUploads(relative);
-    const buffer = await fs.readFile(absolute);
-    const ext = path.extname(absolute).toLowerCase();
-    const type =
-      ext === ".pdf"
-        ? "application/pdf"
-        : ext === ".png"
-          ? "image/png"
-          : ext === ".webp"
-            ? "image/webp"
-            : "image/jpeg";
-    return new NextResponse(buffer, {
-      headers: { "Content-Type": type },
+    const buffer = await readUpload(relative);
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": contentTypeForUpload(relative),
+        "Cache-Control": "private, max-age=3600",
+      },
     });
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

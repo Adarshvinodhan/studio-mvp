@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
-import fs from "fs/promises";
 import { getSession } from "@/lib/auth";
 import {
   generateCataloguePdf,
@@ -23,7 +22,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    let result: { relativePath: string; pageCount: number };
+    let result: { relativePath: string; pageCount: number; buffer: Buffer };
     let downloadName: string;
 
     if (type === "catalogue") {
@@ -39,10 +38,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
 
-    const absolute = path.join(process.cwd(), "uploads", result.relativePath);
-    const buffer = await fs.readFile(absolute);
-
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(result.buffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `${disposition}; filename="${downloadName}"`,
