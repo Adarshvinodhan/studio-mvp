@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["puppeteer", "puppeteer-core", "@sparticuz/chromium"],
+  serverExternalPackages: [
+    "puppeteer",
+    "puppeteer-core",
+    "@sparticuz/chromium-min",
+  ],
   experimental: {
     serverActions: {
       bodySizeLimit: "20mb",
